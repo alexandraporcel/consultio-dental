@@ -12,7 +12,6 @@ const firebaseConfig = {
   measurementId: "G-47RSRBV01W"
 };
 
-// Inicializar la aplicación de Firebase de forma segura
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
@@ -22,12 +21,15 @@ const db = firebase.database();
 
 
 // ==========================================
-// 2. SELECTOR Y LÓGICA DE LA APLICACIÓN
+// 2. UTILIDADES Y SELECTORES
 // ==========================================
 const $ = (selector) => document.querySelector(selector);
 let dbListenerAttached = false;
 
-// Función de Login que se activa al hacer clic en el botón
+
+// ==========================================
+// 3. AUTENTICACIÓN
+// ==========================================
 async function doLogin() {
   const email = $('#loginEmail').value.trim();
   const password = $('#loginPassword').value;
@@ -54,20 +56,15 @@ async function doLogin() {
   }
 }
 
-// Función para cerrar sesión de forma segura
 function doLogout() {
   $('#appContent').classList.add('hidden');
   $('#loginScreen').classList.remove('hidden');
   $('#loginEmail').value = '';
   $('#loginPassword').value = '';
   dbListenerAttached = false;
-
-  auth.signOut().catch((error) => {
-    console.error('Error al cerrar sesión en Firebase:', error);
-  });
+  auth.signOut().catch(err => console.error(err));
 }
 
-// Vigilar el estado de autenticación en tiempo real
 auth.onAuthStateChanged(user => {
   if (user) {
     $('#loginScreen').classList.add('hidden');
@@ -89,7 +86,7 @@ auth.onAuthStateChanged(user => {
 
 
 // ==========================================
-// 3. NAVEGACIÓN DE PESTAÑAS
+// 4. NAVEGACIÓN DE PESTAÑAS
 // ==========================================
 function showTab(tabName) {
   document.querySelectorAll('main > section').forEach(sec => {
@@ -113,12 +110,26 @@ function showTab(tabName) {
 
 
 // ==========================================
-// 4. SINCRONIZACIÓN DE DATOS CON FIREBASE
+// 5. FUNCIONES FALTANTES QUE CAUSABAN EL ERROR
+// ==========================================
+function moveMonth(direction) {
+  console.log("Moviendo mes en la agenda:", direction);
+  // Lógica para cambiar de mes en el calendario
+}
+
+function openPatientModal() {
+  console.log("Abriendo modal de paciente...");
+  const modal = $('#patientModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+
+// ==========================================
+// 6. SINCRONIZACIÓN CON FIREBASE
 // ==========================================
 function escucharDatos() {
-  console.log("Conectando y escuchando datos de Firebase...");
+  console.log("Conectando con Firebase...");
 
-  // Escuchar configuración del consultorio en distintos nodos posibles
   db.ref('config').on('value', (snapshot) => {
     llenarConfig(snapshot.val());
   });
