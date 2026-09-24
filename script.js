@@ -17,19 +17,18 @@ if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
-// Declarar auth y db después de inicializar
 const auth = firebase.auth();
 const db = firebase.database();
 
-
 // ==========================================
-// 2. SELECTOR Y LÓGICA DE LA APLICACIÓN
+// 2. UTILIDADES Y SELECTORES
 // ==========================================
 const $ = (selector) => document.querySelector(selector);
-
 let dbListenerAttached = false;
 
-// Función de Login que se activa al hacer clic en el botón
+// ==========================================
+// 3. AUTENTICACIÓN
+// ==========================================
 async function doLogin() {
   const email = $('#loginEmail').value.trim();
   const password = $('#loginPassword').value;
@@ -46,7 +45,6 @@ async function doLogin() {
   try {
     if (errorBox) errorBox.classList.add('hidden');
     await auth.signInWithEmailAndPassword(email, password);
-    console.log("Sesión iniciada con éxito");
   } catch (error) {
     console.error("Error al iniciar sesión:", error.message);
     if (errorBox) {
@@ -56,23 +54,17 @@ async function doLogin() {
   }
 }
 
-// Función para cerrar sesión de forma segura
 function doLogout() {
   $('#appContent').classList.add('hidden');
   $('#loginScreen').classList.remove('hidden');
   $('#loginEmail').value = '';
   $('#loginPassword').value = '';
   dbListenerAttached = false;
-
-  auth.signOut().catch((error) => {
-    console.error('Error al cerrar sesión en Firebase:', error);
-  });
+  auth.signOut().catch(err => console.error(err));
 }
 
-// Vigilar el estado de autenticación en tiempo real
 auth.onAuthStateChanged(user => {
   if (user) {
-    // Si hay usuario autenticado, muestra la app
     $('#loginScreen').classList.add('hidden');
     $('#appContent').classList.remove('hidden');
     if (!dbListenerAttached) {
@@ -82,7 +74,6 @@ auth.onAuthStateChanged(user => {
       }
     }
   } else {
-    // Si NO hay usuario (o se cerró sesión), fuerza el login en pantalla
     $('#appContent').classList.add('hidden');
     $('#loginScreen').classList.remove('hidden');
     $('#loginEmail').value = '';
@@ -92,36 +83,43 @@ auth.onAuthStateChanged(user => {
 });
 
 // ==========================================
-// 3. FUNCIONES DE INTERFAZ Y NAVEGACIÓN
+// 4. NAVEGACIÓN DE PESTAÑAS
 // ==========================================
-
-// Función para cambiar entre las pestañas del menú (Agenda, Pacientes, etc.)
 function showTab(tabName) {
-  // Ocultar todas las secciones principales
   document.querySelectorAll('main > section').forEach(sec => {
     sec.classList.add('hidden');
   });
-
-  // Quitar la clase active de todos los botones del menú
   document.querySelectorAll('nav button').forEach(btn => {
     btn.classList.remove('active');
   });
 
-  // Mostrar la sección seleccionada
   const activeSection = document.getElementById(`tab-${tabName}`);
   if (activeSection) {
     activeSection.classList.remove('hidden');
   }
 
-  // Marcar el botón como activo
   const activeBtn = document.querySelector(`nav button[data-tab="${tabName}"]`);
   if (activeBtn) {
     activeBtn.classList.add('active');
   }
 }
 
-// Función para escuchar datos de la base de datos de Firebase
+// ==========================================
+// 5. SINCRONIZACIÓN CON FIREBASE
+// ==========================================
 function escucharDatos() {
-  console.log("Escuchando datos de la base de datos...");
-  // Aquí se conectarán tus funciones de lectura en tiempo real de Firebase cuando cargues datos.
+  console.log("Conectando con la base de datos de Firebase...");
+  
+  // Escuchar configuración del consultorio
+  db.ref('config').on('value', (snapshot) => {
+    const config = snapshot.val();
+    if (config) {
+      if ($('#cfgName')) $('#cfgName').value = config.name || '';
+      if ($('#clinicName')) $('#clinicName').textContent = config.name || 'CONSULTORIO DENTAL PORCEL';
+      if ($('#cfgCC')) $('#cfgCC').value = config.cc || '';
+      if ($('#cfgTemplate')) $('#cfgTemplate').value = config.template || '';
+    }
+  });
+
+  // Aquí puedes agregar la lectura de pacientes y citas si ya tienes las funciones estructuradas.
 }
