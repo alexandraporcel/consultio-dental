@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consultorio Dental Porcel — Agenda</title>
+<link rel="stylesheet" href="styles.css">
+<base target="_blank">
+</head>
+<body>
+
+<!-- ===== PANTALLA DE LOGIN ===== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <span class="tooth" style="font-size:48px">🦷</span>
+    <h2>Consultorio Dental Porcel</h2>
+    <p class="hint">Inicia sesión para acceder al sistema</p>
+    <label>Correo electrónico</label>
+    <input type="email" id="loginEmail" placeholder="tu@correo.com">
+    <label>Contraseña</label>
+    <input type="password" id="loginPassword" placeholder="••••••••">
+    <p id="loginError" class="login-error hidden"></p>
+    <button class="btn primary" style="width:100%;margin-top:14px" onclick="doLogin()">Iniciar sesión</button>
+  </div>
+</div>
+
+<!-- ===== CONTENIDO DEL SISTEMA (oculto hasta iniciar sesión) ===== -->
+<div id="appContent" class="hidden">
+
+<header>
+  <span id="logoSlot" class="tooth">🦷</span>
+  <div>
+    <h1 id="clinicName">CONSULTORIO DENTAL PORCEL</h1>
+    <p>Sistema de gestión de citas y pacientes</p>
+  </div>
+  <button class="btn ghost sm" style="margin-left:auto" onclick="doLogout()">🚪 Cerrar sesión</button>
+</header>
+
+<nav>
+  <button class="active" data-tab="agenda" onclick="showTab('agenda')">📅 Agenda</button>
+  <button data-tab="pacientes" onclick="showTab('pacientes')">🧑‍⚕️ Pacientes</button>
+  <button data-tab="stats" onclick="showTab('stats')">📊 Estadísticas</button>
+  <button data-tab="config" onclick="showTab('config')">⚙️ Configuración</button>
+</nav>
+
+<main>
+  <!-- AGENDA -->
+  <section id="tab-agenda">
+    <div class="grid2">
+      <div class="card">
+        <div class="cal-head"><button onclick="moveMonth(-1)">◀</button><h3 id="calTitle"></h3><button onclick="moveMonth(1)">▶</button></div>
+        <div class="cal-grid" id="calGrid"></div>
+        <p class="hint">💡 Haz clic en un día para ver sus citas. Los puntos indican días con citas agendadas.</p>
+      </div>
+      <div>
+        <div class="card">
+          <div class="section-title"><h3 id="dayTitle">Citas</h3>
+            <div style="display:flex;gap:8px">
+              <button class="btn ghost sm" onclick="printDay()">🖨️ Imprimir día</button>
+              <button class="btn primary sm" onclick="openApptModal()">+ Nueva cita</button>
+            </div>
+          </div>
+          <div id="dayList"></div>
+        </div>
+        <div class="card" style="margin-top:18px">
+          <div class="section-title"><h3>🔔 Controles pendientes de contactar</h3></div>
+          <div id="controlsList"></div>
+        </div>
+        <div class="card upcoming" style="margin-top:18px">
+          <div class="section-title"><h3>📆 Próximas citas (7 días)</h3></div>
+          <div id="upcomingList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PACIENTES -->
+  <section id="tab-pacientes" class="hidden">
+    <div class="card">
+      <div class="searchrow">
+        <input id="searchP" placeholder="🔍 Buscar paciente por nombre o teléfono..." oninput="renderPatients()">
+        <button class="btn primary" style="white-space:nowrap" onclick="openPatientModal()">+ Nuevo paciente</button>
+      </div>
+      <div id="patientList"></div>
+    </div>
+  </section>
+
+  <!-- ESTADÍSTICAS -->
+  <section id="tab-stats" class="hidden">
+    <div class="card">
+      <div class="cal-head"><button onclick="moveStatsMonth(-1)">◀</button><h3 id="statsTitle"></h3><button onclick="moveStatsMonth(1)">▶</button></div>
+    </div>
+    <div class="stats-grid">
+      <div class="card stat-card"><span class="stat-label">💰 Cobrado</span><span class="stat-num" id="statCobrado">-</span></div>
+      <div class="card stat-card"><span class="stat-label">🧾 Facturado</span><span class="stat-num" id="statFacturado">-</span></div>
+      <div class="card stat-card"><span class="stat-label">📅 Citas</span><span class="stat-num" id="statCitas">-</span></div>
+      <div class="card stat-card"><span class="stat-label">🧑 Pacientes nuevos</span><span class="stat-num" id="statNuevos">-</span></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="section-title"><h3>Citas por estado</h3></div>
+        <div id="statsEstado"></div>
+      </div>
+      <div class="card">
+        <div class="section-title"><h3>Citas por tratamiento</h3></div>
+        <div id="statsTrat"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONFIGURACIÓN -->
+  <section id="tab-config" class="hidden">
+    <div class="grid2">
+      <div class="card">
+        <div class="section-title"><h3>🏥 Consultorio</h3></div>
+        <label>Nombre del consultorio</label>
+        <input id="cfgName">
+        <label>Logo</label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <img id="cfgLogoPreview" style="width:52px;height:52px;object-fit:contain;border:1px solid var(--line);border-radius:10px;display:none">
+          <input type="file" id="cfgLogo" accept="image/*" style="flex:1;padding:7px">
+        </div>
+        <label>Código de país (para WhatsApp)</label>
+        <input id="cfgCC" placeholder="Ej: 591">
+        <label>Mensaje de recordatorio</label>
+        <textarea id="cfgTemplate" rows="3"></textarea>
+        <p class="hint">Puedes usar: {nombre}, {fecha}, {hora} y {tratamiento}</p>
+        <div class="foot" style="justify-content:flex-start;margin-top:16px"><button class="btn primary" onclick="saveConfig()">Guardar configuración</button></div>
+      </div>
+      <div class="card">
+        <div class="section-title"><h3>💾 Respaldo de datos</h3></div>
+        <p class="hint" style="margin:0 0 12px">Toda la información se guarda <b>en la nube</b>. Exporta un respaldo periódicamente (recomendado: cada semana) por seguridad.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary" onclick="exportBackup()">⬇️ Exportar respaldo</button>
+          <button class="btn ghost" onclick="document.getElementById('importFile').click()">⬆️ Importar respaldo</button>
+          <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackup(event)">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn green" onclick="exportExcel()">📊 Exportar a Excel</button>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+        <div class="section-title"><h3>🧪 Modo prueba</h3></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn ghost" onclick="loadSamples()">Cargar datos de ejemplo</button>
+          <button class="btn red" onclick="wipeAll()">Borrar todos los datos</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+</div>
+<!-- fin de #appContent -->
+
+<!-- MODAL CITA -->
+<div class="modal" id="apptModal"><div class="box">
+  <h3 id="apptModalTitle">Nueva cita</h3>
+
+  <div class="seg" id="apptModeSeg">
+    <button type="button" class="active" data-mode="existing" onclick="setApptMode('existing')">Paciente registrado</button>
+    <button type="button" data-mode="new" onclick="setApptMode('new')">Paciente nuevo</button>
+  </div>
+
+  <div id="apptExistingWrap">
+    <label>Paciente *</label>
+    <select id="apptPatient"></select>
+  </div>
+
+  <div id="apptNewWrap" class="hidden">
+    <div class="fieldrow">
+      <div><label>Nombre *</label><input id="apptNewName" placeholder="Ej: María"></div>
+      <div><label>Apellido</label><input id="apptNewLastName" placeholder="Ej: González"></div>
+    </div>
+    <div class="fieldrow">
+      <div><label>Teléfono (WhatsApp)</label><input id="apptNewPhone" placeholder="Ej: 5914121234567"></div>
+      <div><label>Edad</label><input id="apptNewAge" type="number" min="0" max="120"></div>
+    </div>
+    <label>Sexo</label>
+    <select id="apptNewSex">
+      <option value="">Sin especificar</option>
+      <option value="Femenino">Femenino</option>
+      <option value="Masculino">Masculino</option>
+      <option value="Otro">Otro</option>
+    </select>
+    <p class="hint">Este paciente se registrará automáticamente en "Pacientes" al guardar la cita.</p>
+  </div>
+
+  <label>Fecha *</label>
+  <input type="date" id="apptDate">
+  <label>Hora *</label>
+  <input type="time" id="apptTime">
+  <label>Tratamiento</label>
+  <select id="apptTreat">
+    <option>Revisión general</option>
+    <option>Limpieza dental</option>
+    <option>Resina (empaste)</option>
+    <option>Endodoncia (tratamiento de conducto)</option>
+    <option>Extracción</option>
+    <option>Blanqueamiento dental</option>
+    <option>Ortodoncia / brackets</option>
+    <option>Corona / prótesis</option>
+    <option>Odontopediatría</option>
+    <option>Urgencia</option>
+    <option>Otro</option>
+  </select>
+  <label>Notas</label>
+  <textarea id="apptNotes" rows="2" placeholder="Detalles adicionales..."></textarea>
+  <label>Próximo control (opcional)</label>
+  <input type="date" id="apptNextControl">
+  <p class="hint">Si lo llenas, este paciente aparecerá en "Controles pendientes de contactar" cuando llegue esa fecha.</p>
+  <div class="foot"><button class="btn ghost" onclick="closeModal('apptModal')">Cancelar</button><button class="btn primary" onclick="saveAppt()">Guardar cita</button></div>
+</div></div>
+
+<!-- MODAL PACIENTE -->
+<div class="modal" id="patientModal"><div class="box">
+  <h3 id="patientModalTitle">Nuevo paciente</h3>
+
+  <label>Foto del paciente</label>
+  <div class="avatarpicker">
+    <img id="pAvatarPreview" class="avatar" style="display:none">
+    <button type="button" class="btn ghost sm" onclick="document.getElementById('pAvatarFile').click()">🖼️ Subir foto</button>
+    <input type="file" id="pAvatarFile" accept="image/*" class="hidden">
+  </div>
+
+  <div class="fieldrow">
+    <div><label>Nombre *</label><input id="pName"></div>
+    <div><label>Apellido</label><input id="pLastName"></div>
+  </div>
+  <div class="fieldrow">
+    <div><label>Teléfono (WhatsApp)</label><input id="pPhone" placeholder="Ej: 5914121234567"></div>
+    <div><label>Edad</label><input id="pAge" type="number" min="0" max="120"></div>
+  </div>
+  <label>Sexo</label>
+  <select id="pSex">
+    <option value="">Sin especificar</option>
+    <option value="Femenino">Femenino</option>
+    <option value="Masculino">Masculino</option>
+    <option value="Otro">Otro</option>
+  </select>
+  <label>Notas médicas</label>
+  <textarea id="pNotes" rows="3" placeholder="Alergias, antecedentes, observaciones..."></textarea>
+  <div class="foot"><button class="btn ghost" onclick="closeModal('patientModal')">Cancelar</button><button class="btn primary" onclick="savePatient()">Guardar paciente</button></div>
+</div></div>
+
+<!-- MODAL CUENTA / PAGOS -->
+<div class="modal" id="accountModal"><div class="box wide">
+  <h3 id="accountModalTitle">Cuenta de paciente</h3>
+  <div class="balance-box" id="accountBalanceBox"></div>
+
+  <div class="fieldrow" style="margin-top:14px">
+    <div><label>Tipo</label>
+      <select id="accType">
+        <option value="cargo">Cargo (se le cobró)</option>
+        <option value="pago">Pago / abono recibido</option>
+      </select>
+    </div>
+    <div><label>Fecha</label><input type="date" id="accDate"></div>
+  </div>
+  <div class="fieldrow">
+    <div><label>Concepto</label><input id="accConcept" placeholder="Ej: Endodoncia, abono, seña..."></div>
+    <div><label>Monto (Bs.)</label><input type="number" id="accAmount" min="0" step="0.01" placeholder="0.00"></div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+    <button class="btn primary sm" onclick="addAccountEntry()">+ Agregar movimiento</button>
+  </div>
+
+  <div class="acc-list" id="accountList"></div>
+
+  <div class="foot"><button class="btn ghost" onclick="closeModal('accountModal')">Cerrar</button></div>
+</div></div>
+
+<!-- MODAL ODONTOGRAMA -->
+<div class="modal" id="odontoModal"><div class="box wide">
+  <h3 id="odontoModalTitle">Odontograma</h3>
+  <p class="hint">Haz clic en un diente para registrar su estado.</p>
+  <div class="odonto-legend" id="odontoLegend"></div>
+  <div class="odonto-chart" id="odontoChart"></div>
+  <div id="odontoToothEditor" class="hidden odonto-editor">
+    <label>Diente #<span id="odontoToothNum"></span></label>
+    <select id="odontoStatus">
+      <option value="sano">Sano</option>
+      <option value="caries">Caries</option>
+      <option value="obturado">Obturado / resina</option>
+      <option value="corona">Corona / prótesis</option>
+      <option value="endodoncia">Endodoncia</option>
+      <option value="ausente">Ausente / extraído</option>
+    </select>
+    <label>Nota</label>
+    <textarea id="odontoNote" rows="2" placeholder="Detalles del diagnóstico o tratamiento..."></textarea>
+    <div class="foot"><button class="btn ghost sm" onclick="closeToothEditor()">Cancelar</button><button class="btn primary sm" onclick="saveTooth()">Guardar diente</button></div>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="closeModal('odontoModal')">Cerrar</button></div>
+</div></div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')"><button class="x">✕</button><img id="lbImg" alt="radiografía"></div>
+<div id="printArea" class="hidden"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- Scripts de Firebase agregados aquí -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script src="script.js"></script>
+</body>
+</html>
