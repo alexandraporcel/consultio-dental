@@ -124,6 +124,60 @@ auth.onAuthStateChanged(user => {
 
 $('#loginPassword') && $('#loginPassword').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
 $('#loginEmail') && $('#loginEmail').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
+/* ---------- AUTENTICACIÓN Y LOGIN ---------- */
+let dbListenerAttached = false;
+
+function doLogin(){
+  const email = $('#loginEmail').value.trim();
+  const password = $('#loginPassword').value;
+  const errBox = $('#loginError');
+  if(errBox) errBox.classList.add('hidden');
+  if(!email || !password){
+    if(errBox){
+      errBox.textContent = 'Ingresa tu correo y contraseña.';
+      errBox.classList.remove('hidden');
+    }
+    return;
+  }
+  auth.signInWithEmailAndPassword(email, password).catch(err => {
+    let msg = 'No se pudo iniciar sesión. Intenta de nuevo.';
+    if(err.code === 'auth/invalid-email') msg = 'El correo no es válido.';
+    if(err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
+    if(err.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Espera un momento.';
+    if(errBox){
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+    }
+  });
+}
+
+function doLogout(){
+  auth.signOut().then(() => {
+    // Solo oculta el contenido del sistema y muestra la pantalla de login
+    $('#appContent').classList.add('hidden');
+    $('#loginScreen').classList.remove('hidden');
+    $('#loginEmail').value = '';
+    $('#loginPassword').value = '';
+    dbListenerAttached = false;
+  }).catch((error) => {
+    console.error('Error al cerrar sesión:', error);
+  });
+}
+
+auth.onAuthStateChanged(user => {
+  if(user){
+    $('#loginScreen').classList.add('hidden');
+    $('#appContent').classList.remove('hidden');
+    if(!dbListenerAttached){
+      dbListenerAttached = true;
+      escucharDatos();
+    }
+  } else {
+    $('#appContent').classList.add('hidden');
+    $('#loginScreen').classList.remove('hidden');
+    dbListenerAttached = false;
+  }
+});
 
 /* ---------- SINCRONIZACIÓN FIREBASE ---------- */
 function escucharDatos(){
