@@ -20,15 +20,14 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.database();
 
+
 // ==========================================
-// 2. UTILIDADES Y SELECTORES
+// 2. SELECTOR Y LÓGICA DE LA APLICACIÓN
 // ==========================================
 const $ = (selector) => document.querySelector(selector);
 let dbListenerAttached = false;
 
-// ==========================================
-// 3. AUTENTICACIÓN
-// ==========================================
+// Función de Login que se activa al hacer clic en el botón
 async function doLogin() {
   const email = $('#loginEmail').value.trim();
   const password = $('#loginPassword').value;
@@ -45,6 +44,7 @@ async function doLogin() {
   try {
     if (errorBox) errorBox.classList.add('hidden');
     await auth.signInWithEmailAndPassword(email, password);
+    console.log("Sesión iniciada con éxito");
   } catch (error) {
     console.error("Error al iniciar sesión:", error.message);
     if (errorBox) {
@@ -54,15 +54,20 @@ async function doLogin() {
   }
 }
 
+// Función para cerrar sesión de forma segura
 function doLogout() {
   $('#appContent').classList.add('hidden');
   $('#loginScreen').classList.remove('hidden');
   $('#loginEmail').value = '';
   $('#loginPassword').value = '';
   dbListenerAttached = false;
-  auth.signOut().catch(err => console.error(err));
+
+  auth.signOut().catch((error) => {
+    console.error('Error al cerrar sesión en Firebase:', error);
+  });
 }
 
+// Vigilar el estado de autenticación en tiempo real
 auth.onAuthStateChanged(user => {
   if (user) {
     $('#loginScreen').classList.add('hidden');
@@ -82,13 +87,15 @@ auth.onAuthStateChanged(user => {
   }
 });
 
+
 // ==========================================
-// 4. NAVEGACIÓN DE PESTAÑAS
+// 3. NAVEGACIÓN DE PESTAÑAS
 // ==========================================
 function showTab(tabName) {
   document.querySelectorAll('main > section').forEach(sec => {
     sec.classList.add('hidden');
   });
+
   document.querySelectorAll('nav button').forEach(btn => {
     btn.classList.remove('active');
   });
@@ -104,22 +111,30 @@ function showTab(tabName) {
   }
 }
 
+
 // ==========================================
-// 5. SINCRONIZACIÓN CON FIREBASE
+// 4. SINCRONIZACIÓN DE DATOS CON FIREBASE
 // ==========================================
 function escucharDatos() {
-  console.log("Conectando con la base de datos de Firebase...");
-  
-  // Escuchar configuración del consultorio
-  db.ref('config').on('value', (snapshot) => {
-    const config = snapshot.val();
-    if (config) {
-      if ($('#cfgName')) $('#cfgName').value = config.name || '';
-      if ($('#clinicName')) $('#clinicName').textContent = config.name || 'CONSULTORIO DENTAL PORCEL';
-      if ($('#cfgCC')) $('#cfgCC').value = config.cc || '';
-      if ($('#cfgTemplate')) $('#cfgTemplate').value = config.template || '';
-    }
-  });
+  console.log("Conectando y escuchando datos de Firebase...");
 
-  // Aquí puedes agregar la lectura de pacientes y citas si ya tienes las funciones estructuradas.
+  // Escuchar configuración del consultorio en distintos nodos posibles
+  db.ref('config').on('value', (snapshot) => {
+    llenarConfig(snapshot.val());
+  });
+  db.ref('configuracion').on('value', (snapshot) => {
+    llenarConfig(snapshot.val());
+  });
+  db.ref('consultorio').on('value', (snapshot) => {
+    llenarConfig(snapshot.val());
+  });
+}
+
+function llenarConfig(config) {
+  if (config) {
+    if ($('#cfgName')) $('#cfgName').value = config.name || config.nombre || '';
+    if ($('#clinicName')) $('#clinicName').textContent = config.name || config.nombre || 'CONSULTORIO DENTAL PORCEL';
+    if ($('#cfgCC')) $('#cfgCC').value = config.cc || config.codigoPais || '';
+    if ($('#cfgTemplate')) $('#cfgTemplate').value = config.template || config.mensaje || '';
+  }
 }
