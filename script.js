@@ -313,7 +313,70 @@ function waReminder(id){
     .replace('{nombre}', a.patientName).replace('{fecha}', fmtDate(a.date)).replace('{hora}', a.time).replace('{tratamiento}', a.treatment);
   window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
 }
+// ==========================================
+// AUTENTICACIÓN Y CIERRE DE SESIÓN CORREGIDO
+// ==========================================
+let dbListenerAttached = false;
 
+function doLogin(){
+  const email = $('#loginEmail').value.trim();
+  const password = $('#loginPassword').value;
+  const errBox = $('#loginError');
+  if(errBox) errBox.classList.add('hidden');
+  if(!email || !password){
+    if(errBox){
+      errBox.textContent = 'Ingresa tu correo y contraseña.';
+      errBox.classList.remove('hidden');
+    }
+    return;
+  }
+  auth.signInWithEmailAndPassword(email, password).catch(err => {
+    let msg = 'No se pudo iniciar sesión. Intenta de nuevo.';
+    if(err.code === 'auth/invalid-email') msg = 'El correo no es válido.';
+    if(err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
+    if(err.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Espera un momento.';
+    if(errBox){
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+    }
+  });
+}
+
+function doLogout(){
+  auth.signOut().then(() => {
+    const loginScreen = $('#loginScreen');
+    const appContent = $('#appContent');
+    const loginEmail = $('#loginEmail');
+    const loginPassword = $('#loginPassword');
+    
+    if(loginScreen) loginScreen.classList.remove('hidden');
+    if(appContent) appContent.classList.add('hidden');
+    if(loginEmail) loginEmail.value = '';
+    if(loginPassword) loginPassword.value = '';
+    dbListenerAttached = false;
+  }).catch((error) => {
+    console.error('Error al cerrar sesión:', error);
+    alert('No se pudo cerrar sesión. Inténtalo de nuevo.');
+  });
+}
+
+auth.onAuthStateChanged(user => {
+  const loginScreen = $('#loginScreen');
+  const appContent = $('#appContent');
+  
+  if(user){
+    if(loginScreen) loginScreen.classList.add('hidden');
+    if(appContent) appContent.classList.remove('hidden');
+    if(!dbListenerAttached){
+      dbListenerAttached = true;
+      escucharDatos();
+    }
+  } else {
+    if(loginScreen) loginScreen.classList.remove('hidden');
+    if(appContent) appContent.classList.add('hidden');
+    dbListenerAttached = false;
+  }
+});
 /* ---------- PACIENTES ---------- */
 function renderPatients(){
   const q = ($('#searchP').value || '').toLowerCase();
