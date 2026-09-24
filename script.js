@@ -88,7 +88,6 @@ function doLogin(){
 
 function doLogout(){
   auth.signOut().then(() => {
-    // Solo oculta el sistema y muestra la pantalla de login sin afectar Firebase
     $('#appContent').classList.add('hidden');
     $('#loginScreen').classList.remove('hidden');
     $('#loginEmail').value = '';
@@ -164,7 +163,7 @@ function renderCalendar(){
     else if(i < first + dim){ num = i - first + 1; iso = y + '-' + String(m+1).padStart(2,'0') + '-' + String(num).padStart(2,'0'); }
     else { num = i - first - dim + 1; cls += ' other'; }
     if(iso){ if(iso === tISO) cls += ' today'; if(iso === selectedDate) cls += ' selected'; }
-    html += '<div class="' + cls + '"' + (iso ? ' onclick="pickDay(\'' + iso + \')"' : '') + '>' + num + (iso && apptDays[iso] ? '<span class="dot"></span>' : '') + '</div>';
+    html += '<div class="' + cls + '"' + (iso ? ' onclick="pickDay(\'' + iso + '\')"' : '') + '>' + num + (iso && apptDays[iso] ? '<span class="dot"></span>' : '') + '</div>';
   }
   $('#calGrid').innerHTML = html;
 }
@@ -195,7 +194,7 @@ function renderDay(){
   $('#dayTitle').textContent = 'Citas del ' + fmtDate(selectedDate);
   const list = apptsOn(selectedDate);
   $('#dayList').innerHTML = list.length ? list.map(apptCard).join('') :
-    '<div class="empty">No hay citas este día.<br>Haz clic in <b>+ Nueva cita</b> para agendar. 🦷</div>';
+    '<div class="empty">No hay citas este día.<br>Haz clic en <b>+ Nueva cita</b> para agendar. 🦷</div>';
 }
 
 function renderUpcoming(){
