@@ -1,33 +1,62 @@
-// Definir auth y db para que no dé el error de "not defined"
+// ==========================================
+// 1. CONFIGURACIÓN DE FIREBASE
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCe9oWPHvfAnHvqUKqJgit_dzom3mCBBOg",
+  authDomain: "consultoriodentalporcel.firebaseapp.com",
+  databaseURL: "https://consultoriodentalporcel-default-rtdb.firebaseio.com",
+  projectId: "consultoriodentalporcel",
+  storageBucket: "consultoriodentalporcel.firebasestorage.app",
+  messagingSenderId: "495434397964",
+  appId: "1:495434397964:web:e281c1e6fdd1445f947129",
+  measurementId: "G-47RSRBV01W"
+};
+
+// Inicializar la aplicación de Firebase de forma segura
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+// Declarar auth y db después de inicializar
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Selector rápido para elementos del DOM
+
+// ==========================================
+// 2. SELECTOR Y LÓGICA DE LA APP
+// ==========================================
 const $ = (selector) => document.querySelector(selector);
 
 let dbListenerAttached = false;
 
-// 1. Función de Login que se activa al hacer clic en el botón
+// Función de Login que se activa al hacer clic en el botón
 async function doLogin() {
   const email = $('#loginEmail').value.trim();
   const password = $('#loginPassword').value;
+  const errorBox = $('#loginError');
 
   if (!email || !password) {
-    alert("Por favor, completa el correo y la contraseña.");
+    if (errorBox) {
+      errorBox.textContent = "Por favor, completa el correo y la contraseña.";
+      errorBox.classList.remove('hidden');
+    }
     return;
   }
 
   try {
-    // Intenta iniciar sesión con Firebase Authentication
+    if (errorBox) errorBox.classList.add('hidden');
     await auth.signInWithEmailAndPassword(email, password);
     console.log("Sesión iniciada con éxito");
   } catch (error) {
     console.error("Error al iniciar sesión:", error.message);
-    alert("No se pudo iniciar sesión. Verifica tus datos: " + error.message);
+    if (errorBox) {
+      errorBox.textContent = "Error: " + error.message;
+      errorBox.classList.remove('hidden');
+    }
   }
 }
 
-// 2. Función para cerrar sesión de forma segura
+// Función para cerrar sesión
 function doLogout() {
   $('#appContent').classList.add('hidden');
   $('#loginScreen').classList.remove('hidden');
@@ -40,7 +69,7 @@ function doLogout() {
   });
 }
 
-// 3. Vigilar el estado de autenticación de Firebase en tiempo real
+// Vigilar el estado de autenticación en tiempo real
 auth.onAuthStateChanged(user => {
   if (user) {
     $('#loginScreen').classList.add('hidden');
