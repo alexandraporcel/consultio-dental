@@ -4,7 +4,7 @@ const DB_KEY = 'cdp_data_v1';
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 let _u = 0;
 const uid = () => Date.now().toString(36) + (_u++) + Math.random().toString(36).slice(2,5);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;T'}[c]));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
 const addDays = (iso, n) => { const [y,m,d] = iso.split('-').map(Number); const dt = new Date(y, m-1, d+n); return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0'); };
 const fmtDate = iso => { const [y,m,d] = iso.split('-').map(Number); return new Date(y, m-1, d).toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long', year:'numeric'}); };
@@ -13,7 +13,7 @@ const fmtMoney = n => 'Bs. ' + (Number(n) || 0).toFixed(2);
 
 function printHTML(title, bodyHtml){
   const w = window.open('', '_blank', 'width=480,height=680');
-  if(!w){ alert('El navegador bloqueó la ventana de impresión. Revisa el bloqueador de ventanas emergentes.'); return; }
+  if(!w){ alert('El navegador bloqueó la ventana de impresión.'); return; }
   w.document.open();
   w.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>' +
@@ -59,17 +59,19 @@ if (!firebase.apps.length) {
 const db = firebase.database();
 const auth = firebase.auth();
 
-/* ---------- LOGIN / LOGOUT ---------- */
+/* ---------- AUTENTICACIÓN Y LOGIN ---------- */
 let dbListenerAttached = false;
 
 function doLogin(){
   const email = $('#loginEmail').value.trim();
   const password = $('#loginPassword').value;
   const errBox = $('#loginError');
-  errBox.classList.add('hidden');
+  if(errBox) errBox.classList.add('hidden');
   if(!email || !password){
-    errBox.textContent = 'Ingresa tu correo y contraseña.';
-    errBox.classList.remove('hidden');
+    if(errBox){
+      errBox.textContent = 'Ingresa tu correo y contraseña.';
+      errBox.classList.remove('hidden');
+    }
     return;
   }
   auth.signInWithEmailAndPassword(email, password).catch(err => {
@@ -77,36 +79,45 @@ function doLogin(){
     if(err.code === 'auth/invalid-email') msg = 'El correo no es válido.';
     if(err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
     if(err.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Espera un momento.';
-    errBox.textContent = msg;
-    errBox.classList.remove('hidden');
+    if(errBox){
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+    }
   });
 }
 
 function doLogout(){
   auth.signOut().then(() => {
-    $('#loginScreen').classList.remove('hidden');
-    $('#appContent').classList.add('hidden');
-    $('#loginEmail').value = '';
-    $('#loginPassword').value = '';
+    const loginScreen = $('#loginScreen');
+    const appContent = $('#appContent');
+    const loginEmail = $('#loginEmail');
+    const loginPassword = $('#loginPassword');
+    
+    if(loginScreen) loginScreen.classList.remove('hidden');
+    if(appContent) appContent.classList.add('hidden');
+    if(loginEmail) loginEmail.value = '';
+    if(loginPassword) loginPassword.value = '';
     dbListenerAttached = false;
   }).catch((error) => {
     console.error('Error al cerrar sesión:', error);
+    alert('No se pudo cerrar sesión. Inténtalo de nuevo.');
   });
 }
 
 auth.onAuthStateChanged(user => {
+  const loginScreen = $('#loginScreen');
+  const appContent = $('#appContent');
+  
   if(user){
-    $('#loginScreen').classList.add('hidden');
-    $('#appContent').classList.remove('hidden');
+    if(loginScreen) loginScreen.classList.add('hidden');
+    if(appContent) appContent.classList.remove('hidden');
     if(!dbListenerAttached){
       dbListenerAttached = true;
       escucharDatos();
     }
   } else {
-    $('#loginScreen').classList.remove('hidden');
-    $('#appContent').classList.add('hidden');
-    $('#loginEmail').value = '';
-    $('#loginPassword').value = '';
+    if(loginScreen) loginScreen.classList.remove('hidden');
+    if(appContent) appContent.classList.add('hidden');
     dbListenerAttached = false;
   }
 });
@@ -114,13 +125,12 @@ auth.onAuthStateChanged(user => {
 $('#loginPassword') && $('#loginPassword').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
 $('#loginEmail') && $('#loginEmail').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
 
-// Sincronización apuntando directo a cdp_data_v1 y mapeando settings, patients y appointments
+/* ---------- SINCRONIZACIÓN FIREBASE ---------- */
 function escucharDatos(){
   db.ref('cdp_data_v1').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      state.settings = Object.assign(defaultState().settings, data.settings || data.settings === null ? {} : data.settings);
-      // Mapeamos settings si usa nombres alternativos del respaldo JSON
+      state.settings = Object.assign(defaultState().settings, data.settings || {});
       if (data.settings) {
         if (data.settings.clinicName) state.settings.clinicName = data.settings.clinicName;
         if (data.settings.countryCode) state.settings.countryCode = data.settings.countryCode;
@@ -144,7 +154,7 @@ function save(){
   }
 }
 
-/* ---------- CALENDARIO ---------- */
+/* ---------- CALENDARIO Y AGENDA ---------- */
 function renderCalendar(){
   const y = viewDate.getFullYear(), m = viewDate.getMonth();
   $('#calTitle').textContent = MESES[m] + ' ' + y;
@@ -313,70 +323,7 @@ function waReminder(id){
     .replace('{nombre}', a.patientName).replace('{fecha}', fmtDate(a.date)).replace('{hora}', a.time).replace('{tratamiento}', a.treatment);
   window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
 }
-// ==========================================
-// AUTENTICACIÓN Y CIERRE DE SESIÓN CORREGIDO
-// ==========================================
-let dbListenerAttached = false;
 
-function doLogin(){
-  const email = $('#loginEmail').value.trim();
-  const password = $('#loginPassword').value;
-  const errBox = $('#loginError');
-  if(errBox) errBox.classList.add('hidden');
-  if(!email || !password){
-    if(errBox){
-      errBox.textContent = 'Ingresa tu correo y contraseña.';
-      errBox.classList.remove('hidden');
-    }
-    return;
-  }
-  auth.signInWithEmailAndPassword(email, password).catch(err => {
-    let msg = 'No se pudo iniciar sesión. Intenta de nuevo.';
-    if(err.code === 'auth/invalid-email') msg = 'El correo no es válido.';
-    if(err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
-    if(err.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Espera un momento.';
-    if(errBox){
-      errBox.textContent = msg;
-      errBox.classList.remove('hidden');
-    }
-  });
-}
-
-function doLogout(){
-  auth.signOut().then(() => {
-    const loginScreen = $('#loginScreen');
-    const appContent = $('#appContent');
-    const loginEmail = $('#loginEmail');
-    const loginPassword = $('#loginPassword');
-    
-    if(loginScreen) loginScreen.classList.remove('hidden');
-    if(appContent) appContent.classList.add('hidden');
-    if(loginEmail) loginEmail.value = '';
-    if(loginPassword) loginPassword.value = '';
-    dbListenerAttached = false;
-  }).catch((error) => {
-    console.error('Error al cerrar sesión:', error);
-    alert('No se pudo cerrar sesión. Inténtalo de nuevo.');
-  });
-}
-
-auth.onAuthStateChanged(user => {
-  const loginScreen = $('#loginScreen');
-  const appContent = $('#appContent');
-  
-  if(user){
-    if(loginScreen) loginScreen.classList.add('hidden');
-    if(appContent) appContent.classList.remove('hidden');
-    if(!dbListenerAttached){
-      dbListenerAttached = true;
-      escucharDatos();
-    }
-  } else {
-    if(loginScreen) loginScreen.classList.remove('hidden');
-    if(appContent) appContent.classList.add('hidden');
-    dbListenerAttached = false;
-  }
-});
 /* ---------- PACIENTES ---------- */
 function renderPatients(){
   const q = ($('#searchP').value || '').toLowerCase();
@@ -711,7 +658,7 @@ function renderAccountModal(){
   ).join('') : '<div class="empty">Sin movimientos registrados todavía.</div>';
 }
 function addAccountEntry(){
-  const p = state.patients.find(x => x.id === accountPatientId); if(!p) return;
+  const p = state.patients.find(x => x.id === accountPatientId); if(!p) require;
   const type = $('#accType').value;
   const concept = $('#accConcept').value.trim();
   const amount = parseFloat($('#accAmount').value);
