@@ -88,72 +88,7 @@ function doLogin(){
 
 function doLogout(){
   auth.signOut().then(() => {
-    const loginScreen = $('#loginScreen');
-    const appContent = $('#appContent');
-    const loginEmail = $('#loginEmail');
-    const loginPassword = $('#loginPassword');
-    
-    if(loginScreen) loginScreen.classList.remove('hidden');
-    if(appContent) appContent.classList.add('hidden');
-    if(loginEmail) loginEmail.value = '';
-    if(loginPassword) loginPassword.value = '';
-    dbListenerAttached = false;
-  }).catch((error) => {
-    console.error('Error al cerrar sesión:', error);
-    alert('No se pudo cerrar sesión. Inténtalo de nuevo.');
-  });
-}
-
-auth.onAuthStateChanged(user => {
-  const loginScreen = $('#loginScreen');
-  const appContent = $('#appContent');
-  
-  if(user){
-    if(loginScreen) loginScreen.classList.add('hidden');
-    if(appContent) appContent.classList.remove('hidden');
-    if(!dbListenerAttached){
-      dbListenerAttached = true;
-      escucharDatos();
-    }
-  } else {
-    if(loginScreen) loginScreen.classList.remove('hidden');
-    if(appContent) appContent.classList.add('hidden');
-    dbListenerAttached = false;
-  }
-});
-
-$('#loginPassword') && $('#loginPassword').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
-$('#loginEmail') && $('#loginEmail').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
-/* ---------- AUTENTICACIÓN Y LOGIN ---------- */
-let dbListenerAttached = false;
-
-function doLogin(){
-  const email = $('#loginEmail').value.trim();
-  const password = $('#loginPassword').value;
-  const errBox = $('#loginError');
-  if(errBox) errBox.classList.add('hidden');
-  if(!email || !password){
-    if(errBox){
-      errBox.textContent = 'Ingresa tu correo y contraseña.';
-      errBox.classList.remove('hidden');
-    }
-    return;
-  }
-  auth.signInWithEmailAndPassword(email, password).catch(err => {
-    let msg = 'No se pudo iniciar sesión. Intenta de nuevo.';
-    if(err.code === 'auth/invalid-email') msg = 'El correo no es válido.';
-    if(err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
-    if(err.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Espera un momento.';
-    if(errBox){
-      errBox.textContent = msg;
-      errBox.classList.remove('hidden');
-    }
-  });
-}
-
-function doLogout(){
-  auth.signOut().then(() => {
-    // Solo oculta el contenido del sistema y muestra la pantalla de login
+    // Solo oculta el sistema y muestra la pantalla de login sin afectar Firebase
     $('#appContent').classList.add('hidden');
     $('#loginScreen').classList.remove('hidden');
     $('#loginEmail').value = '';
@@ -178,6 +113,9 @@ auth.onAuthStateChanged(user => {
     dbListenerAttached = false;
   }
 });
+
+$('#loginPassword') && $('#loginPassword').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
+$('#loginEmail') && $('#loginEmail').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
 
 /* ---------- SINCRONIZACIÓN FIREBASE ---------- */
 function escucharDatos(){
@@ -226,7 +164,7 @@ function renderCalendar(){
     else if(i < first + dim){ num = i - first + 1; iso = y + '-' + String(m+1).padStart(2,'0') + '-' + String(num).padStart(2,'0'); }
     else { num = i - first - dim + 1; cls += ' other'; }
     if(iso){ if(iso === tISO) cls += ' today'; if(iso === selectedDate) cls += ' selected'; }
-    html += '<div class="' + cls + '"' + (iso ? ' onclick="pickDay(\'' + iso + '\')"' : '') + '>' + num + (iso && apptDays[iso] ? '<span class="dot"></span>' : '') + '</div>';
+    html += '<div class="' + cls + '"' + (iso ? ' onclick="pickDay(\'' + iso + \')"' : '') + '>' + num + (iso && apptDays[iso] ? '<span class="dot"></span>' : '') + '</div>';
   }
   $('#calGrid').innerHTML = html;
 }
@@ -257,7 +195,7 @@ function renderDay(){
   $('#dayTitle').textContent = 'Citas del ' + fmtDate(selectedDate);
   const list = apptsOn(selectedDate);
   $('#dayList').innerHTML = list.length ? list.map(apptCard).join('') :
-    '<div class="empty">No hay citas este día.<br>Haz clic en <b>+ Nueva cita</b> para agendar. 🦷</div>';
+    '<div class="empty">No hay citas este día.<br>Haz clic in <b>+ Nueva cita</b> para agendar. 🦷</div>';
 }
 
 function renderUpcoming(){
@@ -712,7 +650,7 @@ function renderAccountModal(){
   ).join('') : '<div class="empty">Sin movimientos registrados todavía.</div>';
 }
 function addAccountEntry(){
-  const p = state.patients.find(x => x.id === accountPatientId); if(!p) require;
+  const p = state.patients.find(x => x.id === accountPatientId); if(!p) return;
   const type = $('#accType').value;
   const concept = $('#accConcept').value.trim();
   const amount = parseFloat($('#accAmount').value);
