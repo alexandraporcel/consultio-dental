@@ -110,11 +110,10 @@ function showTab(tabName) {
 
 
 // ==========================================
-// 5. FUNCIONES FALTANTES QUE CAUSABAN EL ERROR
+// 5. INTERFAZ Y ACCIONES
 // ==========================================
 function moveMonth(direction) {
   console.log("Moviendo mes en la agenda:", direction);
-  // Lógica para cambiar de mes en el calendario
 }
 
 function openPatientModal() {
@@ -125,27 +124,24 @@ function openPatientModal() {
 
 
 // ==========================================
-// 6. SINCRONIZACIÓN CON FIREBASE
+// 6. SINCRONIZACIÓN CON FIREBASE (NODO REAL)
 // ==========================================
 function escucharDatos() {
-  console.log("Conectando con Firebase...");
+  console.log("Conectando con la estructura cdp_data_v1 de Firebase...");
 
-  db.ref('config').on('value', (snapshot) => {
-    llenarConfig(snapshot.val());
-  });
-  db.ref('configuracion').on('value', (snapshot) => {
-    llenarConfig(snapshot.val());
-  });
-  db.ref('consultorio').on('value', (snapshot) => {
-    llenarConfig(snapshot.val());
-  });
-}
+  // Conectamos directamente al contenedor principal que arroja tu base de datos
+  db.ref('cdp_data_v1').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      console.log("Datos de la nube sincronizados:", data);
 
-function llenarConfig(config) {
-  if (config) {
-    if ($('#cfgName')) $('#cfgName').value = config.name || config.nombre || '';
-    if ($('#clinicName')) $('#clinicName').textContent = config.name || config.nombre || 'CONSULTORIO DENTAL PORCEL';
-    if ($('#cfgCC')) $('#cfgCC').value = config.cc || config.codigoPais || '';
-    if ($('#cfgTemplate')) $('#cfgTemplate').value = config.template || config.mensaje || '';
-  }
+      // Cargar configuración si existe dentro del nodo
+      if (data.config) {
+        if ($('#cfgName')) $('#cfgName').value = data.config.name || data.config.nombre || '';
+        if ($('#clinicName')) $('#clinicName').textContent = data.config.name || data.config.nombre || 'CONSULTORIO DENTAL PORCEL';
+        if ($('#cfgCC')) $('#cfgCC').value = data.config.cc || data.config.codigoPais || '';
+        if ($('#cfgTemplate')) $('#cfgTemplate').value = data.config.template || data.config.mensaje || '';
+      }
+    }
+  });
 }
