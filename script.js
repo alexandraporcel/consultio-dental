@@ -110,7 +110,7 @@ function showTab(tabName) {
 
 
 // ==========================================
-// 5. INTERFAZ Y ACCIONES
+// 5. ACCIONES DE LA INTERFAZ
 // ==========================================
 function moveMonth(direction) {
   console.log("Moviendo mes en la agenda:", direction);
@@ -124,24 +124,33 @@ function openPatientModal() {
 
 
 // ==========================================
-// 6. SINCRONIZACIÓN CON FIREBASE (NODO REAL)
+// 6. SINCRONIZACIÓN CON LAS RUTAS REALES
 // ==========================================
 function escucharDatos() {
-  console.log("Conectando con la estructura cdp_data_v1 de Firebase...");
+  console.log("Conectando con la estructura cdp_data_v1...");
 
-  // Conectamos directamente al contenedor principal que arroja tu base de datos
+  // Leemos el nodo raíz cdp_data_v1 para capturar appointments, patients y settings
   db.ref('cdp_data_v1').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      console.log("Datos de la nube sincronizados:", data);
+    const rootData = snapshot.val();
+    if (rootData) {
+      console.log("Datos raíz obtenidos:", rootData);
 
-      // Cargar configuración si existe dentro del nodo
-      if (data.config) {
-        if ($('#cfgName')) $('#cfgName').value = data.config.name || data.config.nombre || '';
-        if ($('#clinicName')) $('#clinicName').textContent = data.config.name || data.config.nombre || 'CONSULTORIO DENTAL PORCEL';
-        if ($('#cfgCC')) $('#cfgCC').value = data.config.cc || data.config.codigoPais || '';
-        if ($('#cfgTemplate')) $('#cfgTemplate').value = data.config.template || data.config.mensaje || '';
+      // 1. Sincronizar Configuración / Settings
+      const settings = rootData.settings;
+      if (settings) {
+        if ($('#cfgName')) $('#cfgName').value = settings.clinicName || '';
+        if ($('#clinicName')) $('#clinicName').textContent = settings.clinicName || 'CONSULTORIO DENTAL PORCEL';
+        if ($('#cfgCC')) $('#cfgCC').value = settings.countryCode || '';
+        if ($('#cfgTemplate')) $('#cfgTemplate').value = settings.template || '';
       }
+
+      // 2. Citas (Appointments)
+      const appointments = rootData.appointments || [];
+      console.log("Citas cargadas:", appointments.length);
+
+      // 3. Pacientes (Patients)
+      const patients = rootData.patients || [];
+      console.log("Pacientes cargados:", patients.length);
     }
   });
 }
