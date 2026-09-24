@@ -87,4 +87,10 @@ auth.onAuthStateChanged(user => {
     $('#loginPassword').value = '';
     dbListenerAttached = false;
   }
+  // Función para evitar que la app se congele al entrar
+function escucharDatos() {
+  console.log("Escuchando datos de la base de datos...");
+  // Aquí puedes poner la lógica que lee tus citas o pacientes de Firebase, 
+  // o dejarla vacía temporalmente para que desbloquee la interfaz:
+}
 });
