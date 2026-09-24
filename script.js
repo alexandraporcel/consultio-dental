@@ -23,7 +23,7 @@ const db = firebase.database();
 
 
 // ==========================================
-// 2. SELECTOR Y LÓGICA DE LA APP
+// 2. SELECTOR Y LÓGICA DE LA APLICACIÓN
 // ==========================================
 const $ = (selector) => document.querySelector(selector);
 
@@ -56,7 +56,7 @@ async function doLogin() {
   }
 }
 
-// Función para cerrar sesión
+// Función para cerrar sesión de forma segura
 function doLogout() {
   $('#appContent').classList.add('hidden');
   $('#loginScreen').classList.remove('hidden');
@@ -72,6 +72,7 @@ function doLogout() {
 // Vigilar el estado de autenticación en tiempo real
 auth.onAuthStateChanged(user => {
   if (user) {
+    // Si hay usuario autenticado, muestra la app
     $('#loginScreen').classList.add('hidden');
     $('#appContent').classList.remove('hidden');
     if (!dbListenerAttached) {
@@ -81,16 +82,46 @@ auth.onAuthStateChanged(user => {
       }
     }
   } else {
+    // Si NO hay usuario (o se cerró sesión), fuerza el login en pantalla
     $('#appContent').classList.add('hidden');
     $('#loginScreen').classList.remove('hidden');
     $('#loginEmail').value = '';
     $('#loginPassword').value = '';
     dbListenerAttached = false;
   }
-  // Función para evitar que la app se congele al entrar
+});
+
+// ==========================================
+// 3. FUNCIONES DE INTERFAZ Y NAVEGACIÓN
+// ==========================================
+
+// Función para cambiar entre las pestañas del menú (Agenda, Pacientes, etc.)
+function showTab(tabName) {
+  // Ocultar todas las secciones principales
+  document.querySelectorAll('main > section').forEach(sec => {
+    sec.classList.add('hidden');
+  });
+
+  // Quitar la clase active de todos los botones del menú
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  // Mostrar la sección seleccionada
+  const activeSection = document.getElementById(`tab-${tabName}`);
+  if (activeSection) {
+    activeSection.classList.remove('hidden');
+  }
+
+  // Marcar el botón como activo
+  const activeBtn = document.querySelector(`nav button[data-tab="${tabName}"]`);
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+}
+
+// Función para escuchar datos de la base de datos de Firebase
 function escucharDatos() {
   console.log("Escuchando datos de la base de datos...");
-  // Aquí puedes poner la lógica que lee tus citas o pacientes de Firebase, 
-  // o dejarla vacía temporalmente para que desbloquee la interfaz:
+  // Aquí se conectarán tus funciones de lectura en tiempo real de Firebase cuando cargues datos.
 }
-});
